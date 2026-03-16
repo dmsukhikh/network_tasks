@@ -54,9 +54,9 @@ Client::Client(Client&& other) noexcept
     , server_address_(std::move(other.server_address_))
     , port_(std::move(other.port_)) {}
 
-void Client::send() { }
+void Client::send(const Message &msg) { }
 
-void Client::receive() { }
+void Client::receive(const Message &msg) { }
 
 void Client::close() { socket_.close(); }
 

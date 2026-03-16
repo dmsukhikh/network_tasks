@@ -3,6 +3,7 @@
 
 #include "StreamSocket.hpp"
 #include <string>
+#include "defs.hpp"
 
 class Client {
 public:
@@ -15,8 +16,8 @@ public:
     Client(Client&& other) noexcept;
     Client& operator=(Client&& other) noexcept;
 
-    void send();
-    void receive();
+    void send(const Message &msg);
+    void receive(const Message &msg);
     void close();
     bool is_connected() const { return socket_.is_valid(); }
 

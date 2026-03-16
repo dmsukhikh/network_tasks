@@ -108,10 +108,8 @@ Server& Server::operator=(Server&& other) noexcept
     return *this;
 }
 
-void Server::send() 
+void Server::send(const Message &msg) 
 { 
-    const char* bob = "big bob!";
-    client_socket_.send(bob, strlen(bob));
 }
 
-void Server::receive() { }
+void Server::receive(const Message &msg) { }

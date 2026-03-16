@@ -3,6 +3,7 @@
 
 #include "StreamSocket.hpp"
 #include <string>
+#include "defs.hpp"
 
 class Server {
 public:
@@ -15,8 +16,8 @@ public:
     Server(Server&& other) noexcept;
     Server& operator=(Server&& other) noexcept;
 
-    void send();
-    void receive();
+    void send(const Message& msg);
+    void receive(const Message& msg);
 
     void close();
 
