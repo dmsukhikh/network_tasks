@@ -67,6 +67,8 @@ Server::Server(const std::string& port, int max_connections)
 
     std::cout << "server waiting connection on port " << port_ << "..."
               << std::endl;
+
+    client_socket_ = this->accept_connection();
 }
 
 Server::~Server() { close(); }
@@ -106,6 +108,10 @@ Server& Server::operator=(Server&& other) noexcept
     return *this;
 }
 
-void Server::send() { }
+void Server::send() 
+{ 
+    const char* bob = "big bob!";
+    client_socket_.send(bob, strlen(bob));
+}
 
 void Server::receive() { }

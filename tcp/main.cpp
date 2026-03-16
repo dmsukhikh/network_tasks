@@ -1,6 +1,5 @@
 #include "Server.hpp"
 #include <iostream>
-#include <cstring>
 
 #define BUFFER_SIZE 1024
 
@@ -13,17 +12,8 @@ int main(int argc, char** argv) {
     try {
         Server server(argv[1]);
         
-        StreamSocket client_socket = server.accept_connection();
+        server.send();
         
-        char buf[BUFFER_SIZE] = {0};
-        
-        ssize_t received = client_socket.receive(buf, BUFFER_SIZE, 0);
-        if (received > 0) {
-            std::cout << "received: " << buf << std::endl;
-        }
-        
-        strcpy(buf, "hi from server!");
-        client_socket.send(buf, BUFFER_SIZE, 0);
         
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;

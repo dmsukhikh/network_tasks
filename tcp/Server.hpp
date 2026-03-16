@@ -18,12 +18,13 @@ public:
     void send();
     void receive();
 
-    StreamSocket accept_connection();
     void close();
 
 private:
+    StreamSocket accept_connection();
+
     static const int max_connections_ = 1; 
-    StreamSocket listening_socket_;
+    StreamSocket listening_socket_, client_socket_;
     std::string port_;
 };
 
