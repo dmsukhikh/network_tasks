@@ -31,7 +31,6 @@ Server::Server(const std::string& port, int max_connections)
         if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol))
             == -1)
         {
-            perror("server: socket");
             continue;
         }
 
@@ -45,7 +44,6 @@ Server::Server(const std::string& port, int max_connections)
         if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1)
         {
             ::close(sockfd);
-            perror("server: bind");
             continue;
         }
 
@@ -110,6 +108,16 @@ Server& Server::operator=(Server&& other) noexcept
 
 void Server::send(const Message &msg) 
 { 
+    client_socket_.send(&msg, sizeof(Message));
 }
 
-void Server::receive(const Message &msg) { }
+Message Server::receive() 
+{
+    Message buf;
+    auto bytes = client_socket_.receive(&buf, sizeof(Message));
+    if (bytes == 0)
+    {
+        return {0, MSG_BYE};
+    }
+    return buf;
+}

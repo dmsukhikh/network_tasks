@@ -17,7 +17,7 @@ public:
     Client& operator=(Client&& other) noexcept;
 
     void send(const Message &msg);
-    void receive(const Message &msg);
+    Message receive();
     void close();
     bool is_connected() const { return socket_.is_valid(); }
 

@@ -1,6 +1,6 @@
 .PHONY: all clean
 
-all: server
+all: server client
 
 Client.o: Client.cpp Client.hpp defs.hpp
 	g++ -c Client.cpp -o Client.o
@@ -15,7 +15,10 @@ Server.o: Server.cpp Server.hpp StreamSocket.hpp defs.hpp
 	g++ -c Server.cpp -o Server.o
 
 server: ServerRealisation.cpp Server.o libstreamsocket.a
-	g++ ServerRealisation.cpp -o server -L. -lstreamsocket
+	g++ ServerRealisation.cpp Server.o -o server -L. -lstreamsocket
+
+client: ClientRealisation.cpp Client.o libstreamsocket.a
+	g++ ClientRealisation.cpp Client.o -o client -L. -lstreamsocket
 
 
 clean:

@@ -17,7 +17,7 @@ public:
     Server& operator=(Server&& other) noexcept;
 
     void send(const Message& msg);
-    void receive(const Message& msg);
+    Message receive();
 
     void close();
 

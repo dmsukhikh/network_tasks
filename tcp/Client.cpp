@@ -22,13 +22,11 @@ Client::Client(const std::string& server_address, const std::string& port)
     for (p = servinfo; p != NULL; p = p->ai_next) {
         int sockfd;
         if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
-            perror("client: socket");
             continue;
         }
 
         if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
             ::close(sockfd);
-            perror("client: connect");
             continue;
         }
 
@@ -54,9 +52,21 @@ Client::Client(Client&& other) noexcept
     , server_address_(std::move(other.server_address_))
     , port_(std::move(other.port_)) {}
 
-void Client::send(const Message &msg) { }
+void Client::send(const Message &msg) 
+{ 
+    socket_.send(&msg, sizeof(Message));
+}
 
-void Client::receive(const Message &msg) { }
+Message Client::receive() 
+{  
+    Message buf;
+    auto bytes = socket_.receive(&buf, sizeof(Message));
+    if (bytes == 0)
+    {
+        return {0, MSG_BYE};
+    }
+    return buf;
+}
 
 void Client::close() { socket_.close(); }
 
