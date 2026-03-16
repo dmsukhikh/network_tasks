@@ -20,9 +20,9 @@ public:
     void close();
 
 private:
+    static const int max_connections_ = 1; 
     StreamSocket listening_socket_;
     std::string port_;
-    int max_connections_;
 };
 
 #endif // SERVER_HPP
