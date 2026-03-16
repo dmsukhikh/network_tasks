@@ -54,17 +54,11 @@ Client::Client(Client&& other) noexcept
     , server_address_(std::move(other.server_address_))
     , port_(std::move(other.port_)) {}
 
-ssize_t Client::send(const void* buf, size_t len, int flags) {
-    return socket_.send(buf, len, flags);
-}
+void Client::send() { }
 
-ssize_t Client::receive(void* buf, size_t len, int flags) {
-    return socket_.receive(buf, len, flags);
-}
+void Client::receive() { }
 
-void Client::close() {
-    socket_.close();
-}
+void Client::close() { socket_.close(); }
 
 Client& Client::operator=(Client&& other) noexcept {
     if (this != &other) {

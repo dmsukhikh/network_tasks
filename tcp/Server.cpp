@@ -105,3 +105,7 @@ Server& Server::operator=(Server&& other) noexcept
     }
     return *this;
 }
+
+void Server::send() { }
+
+void Server::receive() { }

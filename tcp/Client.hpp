@@ -15,8 +15,8 @@ public:
     Client(Client&& other) noexcept;
     Client& operator=(Client&& other) noexcept;
 
-    ssize_t send(const void* buf, size_t len, int flags = 0);
-    ssize_t receive(void* buf, size_t len, int flags = 0);
+    void send();
+    void receive();
     void close();
     bool is_connected() const { return socket_.is_valid(); }
 

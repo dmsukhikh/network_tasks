@@ -15,6 +15,8 @@ public:
     Server(Server&& other) noexcept;
     Server& operator=(Server&& other) noexcept;
 
+    void send();
+    void receive();
 
     StreamSocket accept_connection();
     void close();
