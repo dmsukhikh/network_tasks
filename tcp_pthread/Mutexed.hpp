@@ -39,6 +39,11 @@ public:
         T& obj_ref_; // изза этого не можем скопировать Ref. И хорошо
     };
 
+    Mutexed() : obj_()
+    {
+
+    }
+
     Mutexed(T&& obj)
         : obj_(std::forward<T>(obj))
     {

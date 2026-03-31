@@ -128,7 +128,8 @@ Server& Server::operator=(Server&& other) noexcept
 void Server::serve_connection_(MutexedSocket&& conn)
 {
     bool is_running = true;
-    static int state = 0;
+    int state = 0;
+    std::string user;
 
     while (is_running)
     {
@@ -138,22 +139,40 @@ void Server::serve_connection_(MutexedSocket&& conn)
             {
             case 0:
             {
-                auto msg = conn->get()->receive();
-                if (msg.type != MSG_HELLO)
+                bool process_validating = true;
+                while (process_validating)
                 {
-                    is_running = false;
-                    break;
+                    auto msg = conn->get()->receive();
+                    if (msg.type != MSG_HELLO)
+                    {
+                        is_running = false;
+                        break;
+                    }
+
+                    std::string nickname = msg.payload, greating;
+                    std::cout << nickname << std::endl;
+                    
+                    if (users_.get()->count(nickname))
+                    {
+                        greating = nickname
+                            + " is used yet. Please choose another one!";
+                        msg.type = MSG_TEXT;
+                    }
+                    else
+                    {
+                        greating = "Hello, " + nickname + "!";
+                        users_.get()->insert(nickname);
+                        msg.type = MSG_WELCOME;
+                        state = 1;
+                        process_validating = false;
+                        user = nickname;
+                    }
+
+                    strncpy(msg.payload, greating.c_str(), MAX_PAYLOAD - 1);
+                    msg.payload[MAX_PAYLOAD - 1] = '\0';
+                    conn->get()->send(msg);
                 }
 
-                std::string nickname = msg.payload;
-                std::string greating = "Hello, " + nickname + "!";
-                msg.type = MSG_WELCOME;
-
-                strncpy(msg.payload, greating.c_str(), MAX_PAYLOAD - 1);
-                msg.payload[MAX_PAYLOAD - 1] = '\0';
-
-                conn->get()->send(msg);
-                state = 1;
                 break;
             }
 
@@ -197,6 +216,7 @@ void Server::serve_connection_(MutexedSocket&& conn)
     }
 
     conns_.erase(std::remove(conns_.begin(), conns_.end(), conn), conns_.end());
+    users_.get()->erase(user);
 }
 
 void Server::broadcast_msg_(const Message& msg, const MutexedSocket& source)

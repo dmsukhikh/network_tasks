@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cstring>
 #include <sstream>
+#include <pthread.h>
 
 int state = 0;
 
@@ -48,21 +49,32 @@ int main(int argc, char** argv)
             {
             case 0:
             {
-                Message msg{0, MSG_HELLO};
-                std::string nick;
-                std::cout << "Enter nickname: ";
-                std::getline(std::cin, nick);
-                strncpy(msg.payload, nick.c_str(), MAX_PAYLOAD);
-                client.send(msg);
-                msg = client.receive();
-                if (msg.type == MSG_BYE)
+                bool process_validating = true;
+
+                while (process_validating)
                 {
-                    is_running = false;
-                }
-                else
-                {
-                    std::cout << "reply from server: " << msg.payload << std::endl;
-                    state = 1;
+                    Message msg { 0, MSG_HELLO };
+                    std::string nick;
+                    std::cout << "Enter nickname: ";
+                    std::getline(std::cin, nick);
+                    strncpy(msg.payload, nick.c_str(), MAX_PAYLOAD);
+                    client.send(msg);
+
+                    msg = client.receive();
+                    if (msg.type == MSG_BYE)
+                    {
+                        is_running = false;
+                    }
+                    else
+                    {
+                        std::cout << "reply from server: " << msg.payload
+                                  << std::endl;
+                        if (msg.type == MSG_WELCOME)
+                        {
+                            state = 1;
+                            process_validating = false;
+                        }
+                    }
                 }
                 break;
             }

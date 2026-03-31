@@ -7,6 +7,7 @@
 #include <list>
 #include <string>
 #include <list>
+#include <unordered_set>
 
 
 class Server {
@@ -38,6 +39,8 @@ private:
     const int max_connections_ = 1; 
     StreamSocket listening_socket_;
     std::string port_;
+
+    Mutexed<std::unordered_set<std::string>> users_;
 
     pthread_mutex_t cout_mux;
 };
