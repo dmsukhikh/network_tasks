@@ -6,6 +6,9 @@
 
 /**
  * Высокоуровневая абстракция над сокетом, работающая с Message
+ * Умеет:
+ * * Посылать сообщения формата Message
+ * * Показывает, авторизовался ли пользователь
  */
 class StreamSocket {
 public:
@@ -27,6 +30,8 @@ public:
     int get_fd() const { return fd_; }
     bool is_valid() const { return fd_ != -1; }
     void close();
+
+    bool is_auth = false;
 
 private:
     int fd_;

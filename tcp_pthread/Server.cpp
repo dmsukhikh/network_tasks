@@ -166,6 +166,7 @@ void Server::serve_connection_(MutexedSocket&& conn)
                         state = 1;
                         process_validating = false;
                         user = nickname;
+                        conn->get()->is_auth = true;
                     }
 
                     strncpy(msg.payload, greating.c_str(), MAX_PAYLOAD - 1);
@@ -223,7 +224,7 @@ void Server::broadcast_msg_(const Message& msg, const MutexedSocket& source)
 {
     for (auto &s: conns_)
     {
-        if (source && source == s)
+        if (source && source == s && !s->get()->is_auth)
             continue;
         s->get()->send(msg);
     }
