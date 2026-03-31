@@ -25,4 +25,4 @@ client: ClientRealisation.cpp Client.o libstreamsocket.a
 
 
 clean:
-	rm -f server *.o *.a
+	rm -f server client *.o *.a
