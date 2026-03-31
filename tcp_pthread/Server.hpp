@@ -4,9 +4,10 @@
 #include "defs.hpp"
 #include "StreamSocket.hpp"
 #include "ThreadPool.hpp"
+#include <list>
 #include <string>
 #include <memory>
-#include <vector>
+#include <list>
 
 
 class Server {
@@ -23,7 +24,9 @@ public:
     void close();
 
 private:
-    std::vector<MutexedSocket> conns_;
+    std::list<MutexedSocket> conns_;
+
+    void serve_connection_(MutexedSocket &&conn);
 
     StreamSocket accept_connection_();
     ThreadPool pool_;

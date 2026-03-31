@@ -1,4 +1,5 @@
 #include "StreamSocket.hpp"
+#include "defs.hpp"
 #include <unistd.h>
 #include <sys/socket.h>
 
@@ -24,12 +25,18 @@ StreamSocket& StreamSocket::operator=(StreamSocket&& other) noexcept {
     return *this;
 }
 
-ssize_t StreamSocket::send(const void* buf, size_t len, int flags) {
-    return ::send(fd_, buf, len, flags);
+ssize_t StreamSocket::send(const Message& msg) {
+    return ::send(fd_, &msg, sizeof(msg), 0); 
 }
 
-ssize_t StreamSocket::receive(void* buf, size_t len, int flags) {
-    return ::recv(fd_, buf, len, flags);
+Message StreamSocket::receive() {
+    Message buf;
+    auto bytes = recv(fd_, &buf, sizeof(Message), 0);
+    if (bytes == 0)
+    {
+        return {0, MSG_BYE};
+    }
+    return buf;
 }
 
 void StreamSocket::close() {

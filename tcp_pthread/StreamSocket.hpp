@@ -2,7 +2,11 @@
 #define STREAM_SOCKET_HPP
 
 #include <sys/types.h>
+#include "defs.hpp"
 
+/**
+ * Высокоуровневая абстракция над сокетом, работающая с Message
+ */
 class StreamSocket {
 public:
     StreamSocket();
@@ -17,8 +21,9 @@ public:
     StreamSocket(StreamSocket&& other) noexcept;
     StreamSocket& operator=(StreamSocket&& other) noexcept;
 
-    ssize_t send(const void* buf, size_t len, int flags = 0);
-    ssize_t receive(void* buf, size_t len, int flags = 0);
+    ssize_t send(const Message& msg);
+    Message receive();
+
     int get_fd() const { return fd_; }
     bool is_valid() const { return fd_ != -1; }
     void close();

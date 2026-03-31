@@ -12,7 +12,10 @@ MutexedSocket makeMutexedSocket(StreamSocket&& s)
 }
 
 Server::Server(const std::string& port, int max_connections)
-    : port_(port), max_connections_(max_connections), pool_(max_connections, nullptr)
+    : port_(port)
+    , max_connections_(max_connections)
+    , pool_(max_connections,
+          [this](MutexedSocket&& conn) { serve_connection_(std::move(conn)); })
 {
     struct addrinfo hints, *servinfo, *p;
     int rv;
@@ -75,7 +78,7 @@ Server::Server(const std::string& port, int max_connections)
     {
         auto client = accept_connection_();
         conns_.push_back(makeMutexedSocket(std::move(client)));
-        // pool_.enqueue(std::move(client));
+        pool_.enqueue(*conns_.rbegin());
     }
 }
 
@@ -117,4 +120,75 @@ Server& Server::operator=(Server&& other) noexcept
         const_cast<int &>(max_connections_) = std::move(other.max_connections_);
     }
     return *this;
+}
+
+void Server::serve_connection_(MutexedSocket&& conn)
+{
+    bool is_running = true;
+    int state = 0;
+
+    while (is_running)
+    {
+        try
+        {
+            switch (state)
+            {
+            case 0:
+            {
+                auto msg = conn->get()->receive();
+                if (msg.type != MSG_HELLO)
+                {
+                    is_running = false;
+                    break;
+                }
+
+                std::string nickname = msg.payload;
+                std::string greating = "Hello, " + nickname + "!";
+                msg.type = MSG_WELCOME;
+
+                strncpy(msg.payload, greating.c_str(), MAX_PAYLOAD - 1);
+                msg.payload[MAX_PAYLOAD - 1] = '\0';
+
+                conn->get()->send(msg);
+                state = 1;
+                break;
+            }
+
+            case 1:
+            {
+                auto msg = conn->get()->receive();
+                if (msg.type == MSG_TEXT)
+                {
+                    std::cout << msg.payload << std::endl;
+                    conn->get()->send({ 0, MSG_TEXT });
+                }
+                else if (msg.type == MSG_PING)
+                {
+                    const char* pong = "PONG";
+                    msg.type = MSG_PONG;
+                    strncpy(msg.payload, pong, 5);
+                    conn->get()->send(msg);
+                }
+                else if (msg.type == MSG_BYE)
+                {
+                    conn->get()->send({ 0, MSG_BYE });
+                    is_running = false;
+                    break;
+                }
+                break;
+            }
+
+            default:
+                throw std::runtime_error(
+                    "Invalid state of the server (see ServerRealisation "
+                    "for more info)");
+            }
+        }
+
+        catch (const std::exception& e)
+        {
+            std::cerr << "Error: " << e.what() << std::endl;
+            return;
+        }
+    }
 }

@@ -2,7 +2,6 @@
 #define DEFS_HPP
 
 #include "Mutexed.hpp"
-#include "StreamSocket.hpp"
 #include <stdint.h>  
 #include <functional>
   
@@ -27,6 +26,8 @@ MSG_PING  = 4,
 MSG_PONG  = 5,  
 MSG_BYE  = 6  
 };
+
+class StreamSocket;
 
 using MutexedSocket = std::shared_ptr<Mutexed<StreamSocket>>;
 
