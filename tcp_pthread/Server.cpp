@@ -4,11 +4,16 @@
 #include <iostream>
 #include <netdb.h>
 #include <unistd.h>
+#include "defs.hpp"
+
+MutexedSocket makeMutexedSocket(StreamSocket&& s)
+{
+    return std::make_shared<Mutexed<StreamSocket>>(std::move(s));
+}
 
 Server::Server(const std::string& port, int max_connections)
-    : port_(port)
+    : port_(port), max_connections_(max_connections), pool_(max_connections, nullptr)
 {
-
     struct addrinfo hints, *servinfo, *p;
     int rv;
     int yes = 1;
@@ -66,7 +71,12 @@ Server::Server(const std::string& port, int max_connections)
     std::cout << "server waiting connection on port " << port_ << "..."
               << std::endl;
 
-    client_socket_ = this->accept_connection();
+    for (;;)
+    {
+        auto client = accept_connection_();
+        conns_.push_back(makeMutexedSocket(std::move(client)));
+        // pool_.enqueue(std::move(client));
+    }
 }
 
 Server::~Server() { close(); }
@@ -74,10 +84,12 @@ Server::~Server() { close(); }
 Server::Server(Server&& other) noexcept
     : listening_socket_(std::move(other.listening_socket_))
     , port_(std::move(other.port_))
+    , pool_(std::move(other.pool_))
+    , max_connections_(std::move(other.max_connections_))
 {
 }
 
-StreamSocket Server::accept_connection()
+StreamSocket Server::accept_connection_()
 {
     struct sockaddr_in con_addr;
     socklen_t con_addr_size = sizeof(con_addr);
@@ -102,22 +114,7 @@ Server& Server::operator=(Server&& other) noexcept
         close();
         listening_socket_ = std::move(other.listening_socket_);
         port_ = std::move(other.port_);
+        const_cast<int &>(max_connections_) = std::move(other.max_connections_);
     }
     return *this;
-}
-
-void Server::send(const Message &msg) 
-{ 
-    client_socket_.send(&msg, sizeof(Message));
-}
-
-Message Server::receive() 
-{
-    Message buf;
-    auto bytes = client_socket_.receive(&buf, sizeof(Message));
-    if (bytes == 0)
-    {
-        return {0, MSG_BYE};
-    }
-    return buf;
 }

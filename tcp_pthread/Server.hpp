@@ -1,9 +1,13 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
-#include "StreamSocket.hpp"
-#include <string>
 #include "defs.hpp"
+#include "StreamSocket.hpp"
+#include "ThreadPool.hpp"
+#include <string>
+#include <memory>
+#include <vector>
+
 
 class Server {
 public:
@@ -16,16 +20,16 @@ public:
     Server(Server&& other) noexcept;
     Server& operator=(Server&& other) noexcept;
 
-    void send(const Message& msg);
-    Message receive();
-
     void close();
 
 private:
-    StreamSocket accept_connection();
+    std::vector<MutexedSocket> conns_;
 
-    static const int max_connections_ = 1; 
-    StreamSocket listening_socket_, client_socket_;
+    StreamSocket accept_connection_();
+    ThreadPool pool_;
+
+    const int max_connections_ = 1; 
+    StreamSocket listening_socket_;
     std::string port_;
 };
 
