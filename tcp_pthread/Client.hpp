@@ -1,8 +1,8 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
-#include "StreamSocket.hpp"
 #include <string>
+#include <string_view>
 #include "defs.hpp"
 
 class Client {
@@ -17,12 +17,26 @@ public:
     Client& operator=(Client&& other) noexcept;
 
     void send(const Message &msg);
+
+    /**
+     * Перенесено в public, чтобы можно было по красоте запустить тред с этим
+     * вот
+     */
+    void listenRoutine();
+
     Message receive();
-    void close();
-    bool is_connected() const { return socket_.is_valid(); }
 
 private:
-    StreamSocket socket_;
+    bool authRoutine_();
+    void writerRoutine_();
+
+    void formattedPrint(const std::string_view v);
+
+    pthread_t listening_thread_;
+
+    MutexedSocket socket_;
+    Mutexed<bool> is_running_ {false};
+
     std::string server_address_;
     std::string port_;
 };

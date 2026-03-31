@@ -41,7 +41,7 @@ public:
 
     Mutexed() : obj_()
     {
-
+        pthread_mutex_init(&mutex_, nullptr);
     }
 
     Mutexed(T&& obj)

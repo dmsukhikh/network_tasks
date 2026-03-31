@@ -12,6 +12,16 @@ MutexedSocket makeMutexedSocket(StreamSocket&& s)
     return std::make_shared<Mutexed<StreamSocket>>(std::move(s));
 }
 
+Message makeMessageFromText(MessageType type, const std::string& s)
+{
+    Message msg;
+    msg.length = 0;
+    msg.type = type;
+    strncpy(msg.payload, s.c_str(), MAX_PAYLOAD - 1);
+    msg.payload[MAX_PAYLOAD - 1] = '\0';
+    return msg; 
+}
+
 Server::Server(const std::string& port, int max_connections)
     : port_(port)
     , max_connections_(max_connections)
@@ -150,27 +160,27 @@ void Server::serve_connection_(MutexedSocket&& conn)
                     }
 
                     std::string nickname = msg.payload, greating;
-                    std::cout << nickname << std::endl;
                     
                     if (users_.get()->count(nickname))
                     {
-                        greating = nickname
-                            + " is used yet. Please choose another one!";
-                        msg.type = MSG_TEXT;
+                        msg = makeMessageFromText(MSG_TEXT,
+                            nickname
+                                + " is used yet. Please choose another one!");
                     }
                     else
                     {
-                        greating = "Hello, " + nickname + "!";
+                        msg = makeMessageFromText(MSG_WELCOME, "Hello, " + nickname + "!");
                         users_.get()->insert(nickname);
-                        msg.type = MSG_WELCOME;
                         state = 1;
                         process_validating = false;
                         user = nickname;
                         conn->get()->is_auth = true;
+
+                        auto brd_msg = makeMessageFromText(
+                            MSG_TEXT, "Say hi to " + nickname + "!");
+                        broadcast_msg_(brd_msg, conn);
                     }
 
-                    strncpy(msg.payload, greating.c_str(), MAX_PAYLOAD - 1);
-                    msg.payload[MAX_PAYLOAD - 1] = '\0';
                     conn->get()->send(msg);
                 }
 
@@ -224,7 +234,7 @@ void Server::broadcast_msg_(const Message& msg, const MutexedSocket& source)
 {
     for (auto &s: conns_)
     {
-        if (source && source == s && !s->get()->is_auth)
+        if ((source && s == source) || !s->get()->is_auth)
             continue;
         s->get()->send(msg);
     }
