@@ -54,18 +54,12 @@ Client::Client(Client&& other) noexcept
 
 void Client::send(const Message &msg) 
 { 
-    socket_.send(&msg, sizeof(Message));
+    socket_.send(msg);
 }
 
 Message Client::receive() 
 {  
-    Message buf;
-    auto bytes = socket_.receive(&buf, sizeof(Message));
-    if (bytes == 0)
-    {
-        return {0, MSG_BYE};
-    }
-    return buf;
+    return socket_.receive();
 }
 
 void Client::close() { socket_.close(); }

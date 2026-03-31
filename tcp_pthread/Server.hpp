@@ -6,7 +6,6 @@
 #include "ThreadPool.hpp"
 #include <list>
 #include <string>
-#include <memory>
 #include <list>
 
 

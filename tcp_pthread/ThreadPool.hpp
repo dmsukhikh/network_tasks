@@ -1,4 +1,5 @@
 #pragma once
+#include "StreamSocket.hpp"
 #include <cstddef>
 #include "defs.hpp"
 #include <pthread.h>
