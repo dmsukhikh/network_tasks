@@ -1,8 +1,8 @@
 #ifndef DEFS_HPP
 #define DEFS_HPP
 
-#include "Mutexed.hpp"
 #include <stdint.h>  
+#include <memory>
 #include <functional>
   
 #define MAX_PAYLOAD 1024  
@@ -29,9 +29,9 @@ MSG_BYE  = 6
 
 class StreamSocket;
 
-using MutexedSocket = std::shared_ptr<Mutexed<StreamSocket>>;
+using SharedSocket = std::shared_ptr<StreamSocket>;
 
-using Handler = std::function<void(MutexedSocket &&)>;
+using Handler = std::function<void(SharedSocket &&)>;
 
 
 #endif

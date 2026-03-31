@@ -1,16 +1,12 @@
 #include "Server.hpp"
+#include "defs.hpp"
+#include <algorithm>
 #include <arpa/inet.h>
 #include <cstring>
 #include <iostream>
-#include <algorithm>
+#include <memory>
 #include <netdb.h>
 #include <unistd.h>
-#include "defs.hpp"
-
-MutexedSocket makeMutexedSocket(StreamSocket&& s)
-{
-    return std::make_shared<Mutexed<StreamSocket>>(std::move(s));
-}
 
 Message makeMessageFromText(MessageType type, const std::string& s)
 {
@@ -25,11 +21,9 @@ Message makeMessageFromText(MessageType type, const std::string& s)
 Server::Server(const std::string& port, int max_connections)
     : port_(port)
     , max_connections_(max_connections)
-    , pool_(max_connections,
-          [this](MutexedSocket&& conn) { serve_connection_(std::move(conn)); })
+    , pool_(max_connections + 1,
+          [this](SharedSocket&& conn) { serve_connection_(std::move(conn)); })
 {
-    pthread_mutex_init(&cout_mux, nullptr);
-    
     struct addrinfo hints, *servinfo, *p;
     int rv;
     int yes = 1;
@@ -79,7 +73,7 @@ Server::Server(const std::string& port, int max_connections)
         throw std::runtime_error("server: failed to bind");
     }
 
-    if (listen(listening_socket_.get_fd(), max_connections_) == -1)
+    if (listen(listening_socket_.get_fd(), 10) == -1)
     {
         throw std::runtime_error("listen failed");
     }
@@ -90,7 +84,7 @@ Server::Server(const std::string& port, int max_connections)
     for (;;)
     {
         auto client = accept_connection_();
-        conns_.push_back(makeMutexedSocket(std::move(client)));
+        conns_.push_back(std::make_shared<StreamSocket>(std::move(client)));
         pool_.enqueue(*conns_.rbegin());
     }
 }
@@ -135,11 +129,12 @@ Server& Server::operator=(Server&& other) noexcept
     return *this;
 }
 
-void Server::serve_connection_(MutexedSocket&& conn)
+void Server::serve_connection_(SharedSocket&& conn)
 {
     bool is_running = true;
     int state = 0;
     std::string user;
+    
 
     while (is_running)
     {
@@ -152,7 +147,19 @@ void Server::serve_connection_(MutexedSocket&& conn)
                 bool process_validating = true;
                 while (process_validating)
                 {
-                    auto msg = conn->get()->receive();
+                    auto msg = conn->receive();
+
+                    // Проверка на заполненность комнаты: если мест нет,
+                    // обрываем соединение
+                    if (conns_.size() > max_connections_)
+                    {
+                        conn->send(makeMessageFromText(
+                            MSG_BYE, "Room is full, try later"));
+                        conn->close();
+                        is_running = false;
+                        break;
+                    }
+
                     if (msg.type != MSG_HELLO)
                     {
                         is_running = false;
@@ -174,14 +181,14 @@ void Server::serve_connection_(MutexedSocket&& conn)
                         state = 1;
                         process_validating = false;
                         user = nickname;
-                        conn->get()->is_auth = true;
+                        conn->is_auth = true;
 
                         auto brd_msg = makeMessageFromText(
-                            MSG_TEXT, "Say hi to " + nickname + "!");
+                            MSG_TEXT, "[server]: Say hi to " + nickname + "!");
                         broadcast_msg_(brd_msg, conn);
                     }
 
-                    conn->get()->send(msg);
+                    conn->send(msg);
                 }
 
                 break;
@@ -189,21 +196,26 @@ void Server::serve_connection_(MutexedSocket&& conn)
 
             case 1:
             {
-                auto msg = conn->get()->receive();
+                auto msg = conn->receive();
                 if (msg.type == MSG_TEXT)
                 {
-                    conn->get()->send({ 0, MSG_TEXT });
+                    auto brd_msg = makeMessageFromText(
+                        MSG_TEXT, "[" + user + "]: " + msg.payload);
+                    broadcast_msg_(brd_msg, conn);
                 }
                 else if (msg.type == MSG_PING)
                 {
                     const char* pong = "PONG";
                     msg.type = MSG_PONG;
                     strncpy(msg.payload, pong, 5);
-                    conn->get()->send(msg);
+                    conn->send(msg);
                 }
                 else if (msg.type == MSG_BYE)
                 {
-                    conn->get()->send({ 0, MSG_BYE });
+                    conn->send({ 0, MSG_BYE });
+                    auto brd_msg = makeMessageFromText(
+                        MSG_TEXT, "[server]: " + user + " disconnected");
+                    broadcast_msg_(brd_msg, conn);
                     is_running = false;
                     break;
                 }
@@ -219,9 +231,7 @@ void Server::serve_connection_(MutexedSocket&& conn)
 
         catch (const std::exception& e)
         {
-            pthread_mutex_lock(&cout_mux);
             std::cerr << "Error: " << e.what() << std::endl;
-            pthread_mutex_unlock(&cout_mux);
             is_running = false;
         }
     }
@@ -230,12 +240,12 @@ void Server::serve_connection_(MutexedSocket&& conn)
     users_.get()->erase(user);
 }
 
-void Server::broadcast_msg_(const Message& msg, const MutexedSocket& source)
+void Server::broadcast_msg_(const Message& msg, const SharedSocket& source)
 {
     for (auto &s: conns_)
     {
-        if ((source && s == source) || !s->get()->is_auth)
+        if ((source && s == source) || !s->is_auth)
             continue;
-        s->get()->send(msg);
+        s->send(msg);
     }
 }

@@ -1,6 +1,9 @@
 #ifndef STREAM_SOCKET_HPP
 #define STREAM_SOCKET_HPP
 
+#include <atomic>
+#include <memory>
+#include <pthread.h>
 #include <sys/types.h>
 #include "defs.hpp"
 
@@ -9,6 +12,7 @@
  * Умеет:
  * * Посылать сообщения формата Message
  * * Показывает, авторизовался ли пользователь
+ * * Потокобезопасный send
  */
 class StreamSocket {
 public:
@@ -31,10 +35,11 @@ public:
     bool is_valid() const { return fd_ != -1; }
     void close();
 
-    bool is_auth = false;
+    std::atomic<bool> is_auth = false; // ыэх
 
 private:
     int fd_;
+    std::unique_ptr<pthread_mutex_t> send_mut_;
 };
 
 #endif // STREAM_SOCKET_HPP

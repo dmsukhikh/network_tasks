@@ -4,6 +4,7 @@
 #include "defs.hpp"
 #include "StreamSocket.hpp"
 #include "ThreadPool.hpp"
+#include "Mutexed.hpp"
 #include <list>
 #include <string>
 #include <list>
@@ -24,15 +25,15 @@ public:
     void close();
 
 private:
-    std::list<MutexedSocket> conns_;
+    std::list<SharedSocket> conns_;
 
     StreamSocket accept_connection_();
-    void serve_connection_(MutexedSocket &&conn);
+    void serve_connection_(SharedSocket &&conn);
 
     /**
      * \note Если указан source, то туда не посылается сообщение msg
      */
-    void broadcast_msg_(const Message& msg, const MutexedSocket& source = nullptr);
+    void broadcast_msg_(const Message& msg, const SharedSocket& source = nullptr);
 
     ThreadPool pool_;
 
@@ -41,8 +42,6 @@ private:
     std::string port_;
 
     Mutexed<std::unordered_set<std::string>> users_;
-
-    pthread_mutex_t cout_mux;
 };
 
 #endif // SERVER_HPP

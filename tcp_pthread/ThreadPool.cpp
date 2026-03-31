@@ -21,7 +21,7 @@ ThreadPool::ThreadPool(size_t num_threads, Handler handler)
 
 ThreadPool::~ThreadPool() { shutdown(); }
 
-void ThreadPool::enqueue(MutexedSocket socket)
+void ThreadPool::enqueue(SharedSocket socket)
 {
     pthread_mutex_lock(&mutex);
     tasks.push(std::move(socket));

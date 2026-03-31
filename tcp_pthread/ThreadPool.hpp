@@ -1,5 +1,4 @@
 #pragma once
-#include "StreamSocket.hpp"
 #include <cstddef>
 #include "defs.hpp"
 #include <pthread.h>
@@ -13,13 +12,13 @@ public:
 
     ~ThreadPool(); 
 
-    void enqueue(MutexedSocket socket);
+    void enqueue(SharedSocket socket);
 
     void shutdown();
 
 private:
     std::vector<pthread_t> threads;
-    std::queue<MutexedSocket> tasks;
+    std::queue<SharedSocket> tasks;
 
     pthread_mutex_t mutex;
     pthread_cond_t cond;
