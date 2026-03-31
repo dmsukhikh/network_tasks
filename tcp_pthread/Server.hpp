@@ -25,14 +25,21 @@ public:
 private:
     std::list<MutexedSocket> conns_;
 
+    StreamSocket accept_connection_();
     void serve_connection_(MutexedSocket &&conn);
 
-    StreamSocket accept_connection_();
+    /**
+     * \note Если указан source, то туда не посылается сообщение msg
+     */
+    void broadcast_msg_(const Message& msg, const MutexedSocket& source = nullptr);
+
     ThreadPool pool_;
 
     const int max_connections_ = 1; 
     StreamSocket listening_socket_;
     std::string port_;
+
+    pthread_mutex_t cout_mux;
 };
 
 #endif // SERVER_HPP

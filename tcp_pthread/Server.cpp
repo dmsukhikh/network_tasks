@@ -2,6 +2,7 @@
 #include <arpa/inet.h>
 #include <cstring>
 #include <iostream>
+#include <algorithm>
 #include <netdb.h>
 #include <unistd.h>
 #include "defs.hpp"
@@ -17,6 +18,8 @@ Server::Server(const std::string& port, int max_connections)
     , pool_(max_connections,
           [this](MutexedSocket&& conn) { serve_connection_(std::move(conn)); })
 {
+    pthread_mutex_init(&cout_mux, nullptr);
+    
     struct addrinfo hints, *servinfo, *p;
     int rv;
     int yes = 1;
@@ -125,7 +128,7 @@ Server& Server::operator=(Server&& other) noexcept
 void Server::serve_connection_(MutexedSocket&& conn)
 {
     bool is_running = true;
-    int state = 0;
+    static int state = 0;
 
     while (is_running)
     {
@@ -159,7 +162,6 @@ void Server::serve_connection_(MutexedSocket&& conn)
                 auto msg = conn->get()->receive();
                 if (msg.type == MSG_TEXT)
                 {
-                    std::cout << msg.payload << std::endl;
                     conn->get()->send({ 0, MSG_TEXT });
                 }
                 else if (msg.type == MSG_PING)
@@ -187,8 +189,22 @@ void Server::serve_connection_(MutexedSocket&& conn)
 
         catch (const std::exception& e)
         {
+            pthread_mutex_lock(&cout_mux);
             std::cerr << "Error: " << e.what() << std::endl;
-            return;
+            pthread_mutex_unlock(&cout_mux);
+            is_running = false;
         }
+    }
+
+    conns_.erase(std::remove(conns_.begin(), conns_.end(), conn), conns_.end());
+}
+
+void Server::broadcast_msg_(const Message& msg, const MutexedSocket& source)
+{
+    for (auto &s: conns_)
+    {
+        if (source && source == s)
+            continue;
+        s->get()->send(msg);
     }
 }
