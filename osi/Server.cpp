@@ -219,7 +219,7 @@ void Server::serve_connection_(SharedSocket&& conn)
                     user = nickname;
 
                     auto brd_msg = makeMessageFromText(
-                        MSG_TEXT, "[server]: Say hi to " + nickname + "!");
+                        MSG_SERVER_INFO, "Say hi to " + nickname + "!");
                     broadcast_msg_(brd_msg, conn);
                 }
 
@@ -250,7 +250,7 @@ void Server::serve_connection_(SharedSocket&& conn)
                 {
                     conn->send({ 0, MSG_BYE });
                     auto brd_msg = makeMessageFromText(
-                        MSG_TEXT, "[server]: " + user + " disconnected");
+                        MSG_SERVER_INFO, user + " disconnected");
                     broadcast_msg_(brd_msg, conn);
                     is_running = false;
                     break;

@@ -243,6 +243,10 @@ void Client::listenRoutine()
         {
             printFormatted("[server] Error! Reason: " + std::string(msg.payload));
         }
+        else if (msg.type == MSG_SERVER_INFO)
+        {
+            printFormatted("[server] " + std::string(msg.payload));
+        }
         else if (msg.type == MSG_PRIVATE)
         {
             auto dcd = decodePrivateMsg(msg.payload);
