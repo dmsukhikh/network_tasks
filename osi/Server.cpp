@@ -1,6 +1,5 @@
 #include "Server.hpp"
 #include "defs.hpp"
-#include <algorithm>
 #include <arpa/inet.h>
 #include <cstring>
 #include <iostream>
@@ -142,76 +141,82 @@ void Server::serve_connection_(SharedSocket&& conn)
             {
             case 0:
             {
-                bool process_validating = true;
-                bool error_auth = false;
+                auto msg = conn->receive();
 
-                while (process_validating)
+                // Проверка на заполненность комнаты: если мест нет,
+                // обрываем соединение
+                if (conns_.get()->size() >= max_connections_)
                 {
-                    auto msg = conn->receive();
+                    conn->send(makeMessageFromText(
+                        MSG_ERROR, "Room is full, try later"));
+                    is_running = false;
+                    break;
+                }
 
-                    // Проверка на заполненность комнаты: если мест нет,
-                    // обрываем соединение
-                    if (conns_.get()->size() > max_connections_)
-                    {
-                        conn->send(makeMessageFromText(
-                            MSG_ERROR, "Room is full, try later"));
-                        error_auth = true;
-                    }
-
-                    if (msg.type != MSG_HELLO)
-                    {
-                        is_running = false;
-                        break;
-                    }
-
-                    std::string nickname = msg.payload, greating;
-                    
-                    if (conns_.get()->count(nickname))
-                    {
-                        msg = makeMessageFromText(MSG_ERROR,
-                            nickname
-                                + " is used yet. Please choose another one!");
-                        error_auth = true;
-                    }
-                    else if (nickname.size() == 0)
-                    {
-                        msg = makeMessageFromText(MSG_ERROR,
-                            "Nickname is empty! Set a valid nickname");
-                        error_auth = true;
-                    }
-                    else if (nickname.size() > NICKNAME_MAX_SIZE)
-                    {
-                        msg = makeMessageFromText(MSG_ERROR,
-                            "Nickname is too large! Set a valid nickname");
-                        error_auth = true;
-                    }
-                    else
-                    {
-                        msg = makeMessageFromText(MSG_WELCOME, "Hello, " + nickname + "!");
-                        (*conns_.get())[nickname] = conn;
-                        state = 1;
-                        process_validating = false;
-                        user = nickname;
-
-                        auto brd_msg = makeMessageFromText(
-                            MSG_TEXT, "[server]: Say hi to " + nickname + "!");
-                        broadcast_msg_(brd_msg, conn);
-                    }
-
-                    conn->send(msg);
-
-                    if (error_auth)
-                    {
-                        process_validating = false;
-                        conn->close();
-                        break;
-                    }
+                if (msg.type != MSG_HELLO)
+                {
+                    conn->send(makeMessageFromText(
+                        MSG_ERROR, "Invalid protocol! Expected MSG_HELLO"));
+                    is_running = false;
+                    break;
+                }
+                else
+                {
+                    conn->send(makeMessageFromText(MSG_WELCOME, ""));
+                    state = 1;
                 }
 
                 break;
             }
 
             case 1:
+            {
+                // Получаем MSG_AUTH
+                auto msg = conn->receive();
+                std::string nickname = msg.payload, greating;
+
+                if (msg.type != MSG_AUTH)
+                {
+                    msg = makeMessageFromText(MSG_ERROR, "Invalid protocol!");
+                    is_running = false;
+                }
+                else if (conns_.get()->count(nickname))
+                {
+                    msg = makeMessageFromText(MSG_ERROR,
+                        nickname + " is used yet. Please choose another one!");
+                    is_running = false;
+                }
+                else if (nickname.size() == 0)
+                {
+                    msg = makeMessageFromText(
+                        MSG_ERROR, "Nickname is empty! Set a valid nickname");
+                    is_running = false;
+                }
+                else if (nickname.size() > NICKNAME_MAX_SIZE)
+                {
+                    msg = makeMessageFromText(MSG_ERROR,
+                        "Nickname is too large! Set a valid nickname");
+                    is_running = false;
+                }
+                else
+                {
+                    msg = makeMessageFromText(
+                        MSG_WELCOME, "Hello, " + nickname + "!");
+                    (*conns_.get())[nickname] = conn;
+                    state = 2;
+                    user = nickname;
+
+                    auto brd_msg = makeMessageFromText(
+                        MSG_TEXT, "[server]: Say hi to " + nickname + "!");
+                    broadcast_msg_(brd_msg, conn);
+                }
+
+                conn->send(msg);
+
+                break;
+            }
+
+            case 2:
             {
                 auto msg = conn->receive();
                 if (msg.type == MSG_TEXT)

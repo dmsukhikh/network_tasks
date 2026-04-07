@@ -169,11 +169,19 @@ Client& Client::operator=(Client&& other) noexcept {
  */
 bool Client::authRoutine_()
 {
-    bool process_validating = true;
-
-    while (process_validating)
-    {
         Message msg { 0, MSG_HELLO };
+        socket_->send(msg);
+        msg = socket_->receive();
+
+        if (msg.type == MSG_ERROR) 
+        {
+            std::cout << "can't connect to server! reply: " << msg.payload
+                      << std::endl
+                      << std::endl;
+            return false;
+        }
+
+        msg = {0, MSG_AUTH};
         std::string nick;
         std::cout << "Enter nickname: ";
         std::getline(std::cin, nick);
@@ -192,14 +200,8 @@ bool Client::authRoutine_()
         {
             std::cout << "reply from server: " << msg.payload << std::endl
                       << std::endl;
-
-            if (msg.type == MSG_WELCOME)
-            {
-                process_validating = false;
-            }
         }
-    }
-    return true;
+        return true;
 }
 
 void Client::listenRoutine()
