@@ -35,8 +35,6 @@ public:
     bool is_valid() const { return fd_ != -1; }
     void close();
 
-    std::atomic<bool> is_auth = false; // ыэх
-
 private:
     int fd_;
     std::unique_ptr<pthread_mutex_t> send_mut_;

@@ -5,10 +5,8 @@
 #include "StreamSocket.hpp"
 #include "ThreadPool.hpp"
 #include "Mutexed.hpp"
-#include <list>
 #include <string>
-#include <list>
-#include <unordered_set>
+#include <unordered_map>
 
 
 class Server {
@@ -25,7 +23,8 @@ public:
     void close();
 
 private:
-    std::list<SharedSocket> conns_;
+    // Авторизованные пользователи
+    Mutexed<std::unordered_map<std::string, SharedSocket>> conns_;
 
     StreamSocket accept_connection_();
     void serve_connection_(SharedSocket &&conn);
@@ -40,8 +39,6 @@ private:
     const int max_connections_ = 1; 
     StreamSocket listening_socket_;
     std::string port_;
-
-    Mutexed<std::unordered_set<std::string>> users_;
 };
 
 #endif // SERVER_HPP

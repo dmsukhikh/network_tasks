@@ -83,9 +83,8 @@ Server::Server(const std::string& port, int max_connections)
 
     for (;;)
     {
-        auto client = accept_connection_();
-        conns_.push_back(std::make_shared<StreamSocket>(std::move(client)));
-        pool_.enqueue(*conns_.rbegin());
+        auto client = std::make_shared<StreamSocket>(accept_connection_());
+        pool_.enqueue(std::move(client));
     }
 }
 
@@ -134,7 +133,6 @@ void Server::serve_connection_(SharedSocket&& conn)
     bool is_running = true;
     int state = 0;
     std::string user;
-    
 
     while (is_running)
     {
@@ -153,7 +151,7 @@ void Server::serve_connection_(SharedSocket&& conn)
 
                     // Проверка на заполненность комнаты: если мест нет,
                     // обрываем соединение
-                    if (conns_.size() > max_connections_)
+                    if (conns_.get()->size() > max_connections_)
                     {
                         conn->send(makeMessageFromText(
                             MSG_ERROR, "Room is full, try later"));
@@ -168,7 +166,7 @@ void Server::serve_connection_(SharedSocket&& conn)
 
                     std::string nickname = msg.payload, greating;
                     
-                    if (users_.get()->count(nickname))
+                    if (conns_.get()->count(nickname))
                     {
                         msg = makeMessageFromText(MSG_ERROR,
                             nickname
@@ -190,11 +188,10 @@ void Server::serve_connection_(SharedSocket&& conn)
                     else
                     {
                         msg = makeMessageFromText(MSG_WELCOME, "Hello, " + nickname + "!");
-                        users_.get()->insert(nickname);
+                        (*conns_.get())[nickname] = conn;
                         state = 1;
                         process_validating = false;
                         user = nickname;
-                        conn->is_auth = true;
 
                         auto brd_msg = makeMessageFromText(
                             MSG_TEXT, "[server]: Say hi to " + nickname + "!");
@@ -256,15 +253,14 @@ void Server::serve_connection_(SharedSocket&& conn)
         }
     }
 
-    conns_.erase(std::remove(conns_.begin(), conns_.end(), conn), conns_.end());
-    users_.get()->erase(user);
+    conns_.get()->erase(user);
 }
 
 void Server::broadcast_msg_(const Message& msg, const SharedSocket& source)
 {
-    for (auto &s: conns_)
+    for (auto &[k,s]: *conns_.get())
     {
-        if ((source && s == source) || !s->is_auth)
+        if (source && s == source)
             continue;
         s->send(msg);
     }
