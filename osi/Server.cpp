@@ -181,6 +181,12 @@ void Server::serve_connection_(SharedSocket&& conn)
                             "Nickname is empty! Set a valid nickname");
                         error_auth = true;
                     }
+                    else if (nickname.size() > NICKNAME_MAX_SIZE)
+                    {
+                        msg = makeMessageFromText(MSG_ERROR,
+                            "Nickname is too large! Set a valid nickname");
+                        error_auth = true;
+                    }
                     else
                     {
                         msg = makeMessageFromText(MSG_WELCOME, "Hello, " + nickname + "!");

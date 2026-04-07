@@ -6,6 +6,7 @@
 #include <functional>
   
 #define MAX_PAYLOAD 1024  
+#define NICKNAME_MAX_SIZE 31
   
 ;
 #pragma pack(push, 1)
@@ -15,6 +16,14 @@ uint32_t length;  // длина поля type + payload
 uint8_t  type;  // тип сообщения  
 char  payload[MAX_PAYLOAD]; // данные  
 } Message;  
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+typedef struct {
+    int sock;
+    char nickname[NICKNAME_MAX_SIZE];
+    int authenticated;
+} ClientData;
 #pragma pack(pop)
 
 enum MessageType 
