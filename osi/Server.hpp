@@ -5,6 +5,7 @@
 #include "StreamSocket.hpp"
 #include "ThreadPool.hpp"
 #include "Mutexed.hpp"
+#include <memory>
 #include <string>
 #include <unordered_map>
 
@@ -25,6 +26,8 @@ public:
 private:
     // Авторизованные пользователи
     Mutexed<std::unordered_map<std::string, SharedSocket>> conns_;
+    
+    void log(const std::string& level, const std::string& message);
 
     StreamSocket accept_connection_();
     void serve_connection_(SharedSocket &&conn);
@@ -39,6 +42,12 @@ private:
      * \return false, если сообщение не доставлено. Иначе - true;
      */
     bool private_msg_(const Message& msg, const std::string& user);
+
+    std::pair<std::string, std::string> decodePrivateMsg_(const std::string& payload);
+
+    std::string encodePrivateMsg_(const std::pair<std::string, std::string>& dat);
+
+    std::unique_ptr<pthread_mutex_t> cout_mutex_;
 
     ThreadPool pool_;
 
