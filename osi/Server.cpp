@@ -145,6 +145,8 @@ void Server::serve_connection_(SharedSocket&& conn)
             case 0:
             {
                 bool process_validating = true;
+                bool error_auth = false;
+
                 while (process_validating)
                 {
                     auto msg = conn->receive();
@@ -154,10 +156,8 @@ void Server::serve_connection_(SharedSocket&& conn)
                     if (conns_.size() > max_connections_)
                     {
                         conn->send(makeMessageFromText(
-                            MSG_BYE, "Room is full, try later"));
-                        conn->close();
-                        is_running = false;
-                        break;
+                            MSG_ERROR, "Room is full, try later"));
+                        error_auth = true;
                     }
 
                     if (msg.type != MSG_HELLO)
@@ -170,9 +170,16 @@ void Server::serve_connection_(SharedSocket&& conn)
                     
                     if (users_.get()->count(nickname))
                     {
-                        msg = makeMessageFromText(MSG_TEXT,
+                        msg = makeMessageFromText(MSG_ERROR,
                             nickname
                                 + " is used yet. Please choose another one!");
+                        error_auth = true;
+                    }
+                    else if (nickname.size() == 0)
+                    {
+                        msg = makeMessageFromText(MSG_ERROR,
+                            "Nickname is empty! Set a valid nickname");
+                        error_auth = true;
                     }
                     else
                     {
@@ -189,6 +196,13 @@ void Server::serve_connection_(SharedSocket&& conn)
                     }
 
                     conn->send(msg);
+
+                    if (error_auth)
+                    {
+                        process_validating = false;
+                        conn->close();
+                        break;
+                    }
                 }
 
                 break;

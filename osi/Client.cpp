@@ -168,7 +168,7 @@ bool Client::authRoutine_()
         socket_->send(msg);
 
         msg = socket_->receive();
-        if (msg.type == MSG_BYE)
+        if (msg.type == MSG_ERROR)
         {
             std::cout << "can't connect to server! reply: " << msg.payload
                       << std::endl
