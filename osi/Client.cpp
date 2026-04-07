@@ -41,6 +41,18 @@ void disableRawMode() {
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
 }
 
+std::pair<std::string, std::string> decodePrivateMsg(const std::string& payload)
+{
+    auto i = payload.find(':');
+    return { std::string(payload.begin(), payload.begin() + i),
+        std::string(payload.begin() + i + 1, payload.end()) };
+}
+
+std::string encodePrivateMsg(const std::pair<std::string, std::string>& dat)
+{
+    return dat.first + ":" + dat.second;
+}
+
 Message makeMessage(const std::string& s)
 {
     std::string cmd;
@@ -63,7 +75,7 @@ Message makeMessage(const std::string& s)
         std::string to,payload;
         ss >> to;
         std::getline(ss, payload, '\0');
-        to += ":" + payload;
+        to = encodePrivateMsg({to, payload});
         strncpy(msg.payload, to.c_str(), MAX_PAYLOAD-1);
     }
     else
@@ -75,6 +87,7 @@ Message makeMessage(const std::string& s)
     msg.payload[MAX_PAYLOAD-1] = '\0';
     return msg;
 }
+
 
 Client::Client(const std::string& server_address, const std::string& port)
     : server_address_(server_address), port_(port) {
@@ -169,39 +182,42 @@ Client& Client::operator=(Client&& other) noexcept {
  */
 bool Client::authRoutine_()
 {
-        Message msg { 0, MSG_HELLO };
-        socket_->send(msg);
-        msg = socket_->receive();
+    Message msg { 0, MSG_HELLO };
+    socket_->send(msg);
+    msg = socket_->receive();
 
-        if (msg.type == MSG_ERROR) 
-        {
-            std::cout << "can't connect to server! reply: " << msg.payload
-                      << std::endl
-                      << std::endl;
-            return false;
-        }
+    if (msg.type == MSG_ERROR)
+    {
+        std::cout << "can't connect to server! reply: " << msg.payload
+                  << std::endl
+                  << std::endl;
+        return false;
+    }
 
-        msg = {0, MSG_AUTH};
-        std::string nick;
-        std::cout << "Enter nickname: ";
-        std::getline(std::cin, nick);
-        strncpy(msg.payload, nick.c_str(), MAX_PAYLOAD);
-        socket_->send(msg);
+    msg = { 0, MSG_AUTH };
+    std::string nick;
 
-        msg = socket_->receive();
-        if (msg.type == MSG_ERROR)
-        {
-            std::cout << "can't connect to server! reply: " << msg.payload
-                      << std::endl
-                      << std::endl;
-            return false;
-        }
-        else
-        {
-            std::cout << "reply from server: " << msg.payload << std::endl
-                      << std::endl;
-        }
-        return true;
+    std::cout << "Enter nickname: ";
+    std::getline(std::cin, nick);
+    std::stringstream s(nick);
+    s >> nick;
+    strncpy(msg.payload, nick.c_str(), MAX_PAYLOAD);
+    socket_->send(msg);
+
+    msg = socket_->receive();
+    if (msg.type == MSG_ERROR)
+    {
+        std::cout << "can't connect to server! reply: " << msg.payload
+                  << std::endl
+                  << std::endl;
+        return false;
+    }
+    else
+    {
+        std::cout << "reply from server: " << msg.payload << std::endl
+                  << std::endl;
+    }
+    return true;
 }
 
 void Client::listenRoutine()
@@ -222,6 +238,15 @@ void Client::listenRoutine()
         else if (msg.type == MSG_TEXT)
         {
             printFormatted(msg.payload);
+        }
+        else if (msg.type == MSG_ERROR)
+        {
+            printFormatted("[server] Error! Reason: " + std::string(msg.payload));
+        }
+        else if (msg.type == MSG_PRIVATE)
+        {
+            auto dcd = decodePrivateMsg(msg.payload);
+            printFormatted("[" + dcd.first + ":private]" + dcd.second);
         }
     }
 }

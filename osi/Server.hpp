@@ -38,7 +38,7 @@ private:
      * Сообщение msg доставляется только клиенту user
      * \return false, если сообщение не доставлено. Иначе - true;
      */
-    bool private_msg(const Message& msg, const std::string& user);
+    bool private_msg_(const Message& msg, const std::string& user);
 
     ThreadPool pool_;
 

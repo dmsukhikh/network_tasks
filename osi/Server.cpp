@@ -7,6 +7,18 @@
 #include <netdb.h>
 #include <unistd.h>
 
+std::pair<std::string, std::string> decodePrivateMsg(const std::string& payload)
+{
+    auto i = payload.find(':');
+    return { std::string(payload.begin(), payload.begin() + i),
+        std::string(payload.begin() + i + 1, payload.end()) };
+}
+
+std::string encodePrivateMsg(const std::pair<std::string, std::string>& dat)
+{
+    return dat.first + ":" + dat.second;
+}
+
 Message makeMessageFromText(MessageType type, const std::string& s)
 {
     Message msg;
@@ -225,6 +237,7 @@ void Server::serve_connection_(SharedSocket&& conn)
                         MSG_TEXT, "[" + user + "]: " + msg.payload);
                     broadcast_msg_(brd_msg, conn);
                 }
+
                 else if (msg.type == MSG_PING)
                 {
                     const char* pong = "PONG";
@@ -232,6 +245,7 @@ void Server::serve_connection_(SharedSocket&& conn)
                     strncpy(msg.payload, pong, 5);
                     conn->send(msg);
                 }
+
                 else if (msg.type == MSG_BYE)
                 {
                     conn->send({ 0, MSG_BYE });
@@ -240,6 +254,21 @@ void Server::serve_connection_(SharedSocket&& conn)
                     broadcast_msg_(brd_msg, conn);
                     is_running = false;
                     break;
+                }
+
+                else if (msg.type == MSG_PRIVATE)
+                {
+                    auto dcd = decodePrivateMsg(msg.payload);
+                    auto is_sent = private_msg_(
+                        makeMessageFromText(MSG_PRIVATE,
+                            encodePrivateMsg({ user, dcd.second })),
+                        dcd.first);
+
+                    if (!is_sent)
+                    {
+                        conn->send(makeMessageFromText(MSG_ERROR,
+                            "There is no user with name " + dcd.first));
+                    }
                 }
                 break;
             }
@@ -272,7 +301,7 @@ void Server::broadcast_msg_(const Message& msg, const SharedSocket& source)
     }
 }
 
-bool Server::private_msg(const Message& msg, const std::string& user)
+bool Server::private_msg_(const Message& msg, const std::string& user)
 {
     if (!conns_.get()->count(user))
     {
