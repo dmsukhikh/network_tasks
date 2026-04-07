@@ -57,8 +57,21 @@ Message makeMessage(const std::string& s)
     }
 
     Message msg{0};
-    msg.type = MSG_TEXT;
-    strncpy(msg.payload, s.c_str(), MAX_PAYLOAD-1);
+    if (cmd == "/private")
+    {
+        msg.type = MSG_PRIVATE;
+        std::string to,payload;
+        ss >> to;
+        std::getline(ss, payload, '\0');
+        to += ":" + payload;
+        strncpy(msg.payload, to.c_str(), MAX_PAYLOAD-1);
+    }
+    else
+    {
+        msg.type = MSG_TEXT;
+        strncpy(msg.payload, s.c_str(), MAX_PAYLOAD-1);
+    }
+
     msg.payload[MAX_PAYLOAD-1] = '\0';
     return msg;
 }

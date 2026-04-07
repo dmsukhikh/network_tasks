@@ -18,6 +18,15 @@ char  payload[MAX_PAYLOAD]; // данные
 } Message;  
 #pragma pack(pop)
 
+/**
+ * Структура ClientData
+ *
+ * Эта структура нигде не используется, но концептуально она представлена в
+ * Server::conns_. Там хранятся обертки StreamSocket (shared_ptr на нее) и
+ * сопоставление с никнеймом. При аутентификации учитывается размер
+ * NICKNAME_MAX_SIZE. Также в conns_ хранятся только авторизованные
+ * пользователи, что делает хранение поля _authenticated_ излишним
+ */
 #pragma pack(push, 1)
 typedef struct {
     int sock;

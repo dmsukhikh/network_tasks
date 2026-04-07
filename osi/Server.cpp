@@ -258,7 +258,8 @@ void Server::serve_connection_(SharedSocket&& conn)
 
 void Server::broadcast_msg_(const Message& msg, const SharedSocket& source)
 {
-    for (auto &[k,s]: *conns_.get())
+    auto conns_copy = *conns_.get(); // Копируем массив, чтобы не держать блокировку 
+    for (auto &[k,s]: conns_copy)
     {
         if (source && s == source)
             continue;
