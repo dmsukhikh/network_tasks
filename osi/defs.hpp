@@ -24,7 +24,12 @@ MSG_WELCOME = 2, // сервер -> клиент
 MSG_TEXT  = 3, // текст  
 MSG_PING  = 4,  
 MSG_PONG  = 5,  
-MSG_BYE  = 6  
+MSG_BYE  = 6,
+
+MSG_AUTH = 7,        // аутентификация
+MSG_PRIVATE = 8,     // личное сообщение
+MSG_ERROR = 9,       // ошибка
+MSG_SERVER_INFO = 10 // системные сообщения
 };
 
 class StreamSocket;
