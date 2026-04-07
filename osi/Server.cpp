@@ -271,3 +271,16 @@ void Server::broadcast_msg_(const Message& msg, const SharedSocket& source)
         s->send(msg);
     }
 }
+
+bool Server::private_msg(const Message& msg, const std::string& user)
+{
+    if (!conns_.get()->count(user))
+    {
+        return false;
+    }
+    
+    auto receiver = conns_.get()->at(user);
+    receiver->send(msg); // TODO: обработка ошибок транспортного уровня
+    return true;
+}
+

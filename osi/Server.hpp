@@ -34,6 +34,12 @@ private:
      */
     void broadcast_msg_(const Message& msg, const SharedSocket& source = nullptr);
 
+    /**
+     * Сообщение msg доставляется только клиенту user
+     * \return false, если сообщение не доставлено. Иначе - true;
+     */
+    bool private_msg(const Message& msg, const std::string& user);
+
     ThreadPool pool_;
 
     const int max_connections_ = 1; 
